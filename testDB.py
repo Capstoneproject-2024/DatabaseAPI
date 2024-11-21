@@ -24,9 +24,10 @@ class DBManager:
         self.cur.execute("""
             CREATE TABLE IF NOT EXISTS userTable (
                 ID INT AUTO_INCREMENT PRIMARY KEY,
-                nickname VARCHAR(45) NOT NULL,
-                email VARCHAR(254) NOT NULL,
+                nickname VARCHAR(45) NOT NULL ,
+                email VARCHAR(254) NOT NULL UNIQUE,
                 uid VARCHAR(45) NOT NULL
+                
             );
         """)
 
@@ -129,12 +130,11 @@ class DBManager:
         """)
         self.cur.execute("""
             CREATE TABLE IF NOT EXISTS reviewVisibilityTable (
-                reviewID INT NOT NULL,
-                groupID INT NOT NULL,
-                visibilityLevel ENUM('public', 'group', 'private') DEFAULT 'public',
-                PRIMARY KEY (reviewID, groupID),
-                FOREIGN KEY (reviewID) REFERENCES reviewTable(ID) ON DELETE CASCADE,
-                FOREIGN KEY (groupID) REFERENCES groupTable(groupID) ON DELETE CASCADE
+                reviewID INT NOT NULL PRIMARY KEY,
+                
+                visibilityLevel ENUM('public', 'private') DEFAULT 'public',
+                
+                FOREIGN KEY (reviewID) REFERENCES reviewTable(ID) ON DELETE CASCADE
             );
 
         """)
@@ -145,7 +145,7 @@ class DBManager:
         result = self.cur.fetchone()
 
         if result[0] == 0:
-            with open('finalData.csv', mode='r') as file:
+            with open('finalData.csv', mode='r',encoding = "cp949") as file:
                 csv_reader = csv.reader(file)
 
                 for row in csv_reader:
@@ -181,8 +181,11 @@ class DBManager:
                 # SELECT 문이 아닌 경우 (예: INSERT, UPDATE, DELETE)
                 self.conn.commit()
                 print("쿼리 실행 완료.")
+                return "success"
         except Exception as e:
             print(f"에러 발생: {e}")
+            return "fail"
+            
 
     def close(self):
         self.conn.close()
@@ -200,6 +203,8 @@ def execute_query_route():
     query = request.args.get('query')  # URL의 query 파라미터를 가져옴
     if query:
         result = dbManager.execute_query(query)
+        if(result == "fail"):
+            return jsonify({"result":result}), 400
         return jsonify({"result": result})  # 결과를 JSON 형식으로 반환
     else:
         return jsonify({"error": "쿼리를 입력해주세요."}), 400
