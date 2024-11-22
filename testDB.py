@@ -39,6 +39,7 @@ class DBManager:
                 author VARCHAR(100),
                 publisher VARCHAR(30),
                 year VARCHAR(4),
+                description TEXT,
                 image TEXT,
                 ISBN CHAR(13)
             );
@@ -47,11 +48,11 @@ class DBManager:
         # followerTable 생성
         self.cur.execute("""
             CREATE TABLE IF NOT EXISTS followerTable (
-                userID1 INT NOT NULL,
-                userID2 INT NOT NULL,
-                PRIMARY KEY (userID1, userID2),
-                FOREIGN KEY (userID1) REFERENCES userTable(ID) ON DELETE CASCADE,
-                FOREIGN KEY (userID2) REFERENCES userTable(ID) ON DELETE CASCADE
+                followerID INT NOT NULL,
+                followeeID INT NOT NULL,
+                PRIMARY KEY (followerID, followeeID),
+                FOREIGN KEY (followerID) REFERENCES userTable(ID) ON DELETE CASCADE,
+                FOREIGN KEY (followeeID) REFERENCES userTable(ID) ON DELETE CASCADE
             );
         """)
 
@@ -70,7 +71,9 @@ class DBManager:
         self.cur.execute("""
             CREATE TABLE IF NOT EXISTS bookKeywordTable (
                 bookID INT NOT NULL PRIMARY KEY,
-                keyword TEXT
+                keyword TEXT NOT NULL,
+                FOREIGN KEY (bookID) REFERENCES bookTable(ID) ON DELETE CASCADE
+                         
             );
         """)
 
@@ -78,7 +81,8 @@ class DBManager:
         self.cur.execute("""
             CREATE TABLE IF NOT EXISTS bookReviewKeywordTable (
                 bookID INT NOT NULL PRIMARY KEY,
-                reviewKeyword TEXT
+                reviewKeyword TEXT NOT NULL,
+                FOREIGN KEY (bookID) REFERENCES bookTable(ID) ON DELETE CASCADE
             );
         """)
 
@@ -87,7 +91,9 @@ class DBManager:
             CREATE TABLE IF NOT EXISTS groupTable (
                 groupID INT AUTO_INCREMENT PRIMARY KEY,
                 groupName VARCHAR(100) NOT NULL,
-                adminID INT NOT NULL
+                groupDescription Text,
+                adminID INT NOT NULL,
+                FOREIGN KEY (adminID) REFERENCES userTable(ID) ON DELETE CASCADE
             );
         """)
 
@@ -109,10 +115,11 @@ class DBManager:
                 userID INT NOT NULL,
                 bookID INT NOT NULL,
                 rating FLOAT CHECK (rating >= 0 AND rating <= 5),
-                review TEXT,
+                review TEXT NOT NULL,
+                quote TEXT NOT NULL,
                 reviewDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (userID) REFERENCES userTable(ID) ON DELETE CASCADE,
-                FOREIGN KEY (bookID) REFERENCES bookTable(id) ON DELETE CASCADE
+                FOREIGN KEY (bookID) REFERENCES bookTable(ID) ON DELETE CASCADE
             );
         """)
 
@@ -139,34 +146,259 @@ class DBManager:
 
         """)
 
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS groupVocabularyTable (
+                ID INT AUTO_INCREMENT PRIMARY KEY,
+                
+                vocabulary   varchar(20) not null
+                
+            );
+
+        """)
+
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS groupQuestionCandidateTable (
+                ID INT AUTO_INCREMENT PRIMARY KEY,
+                groupID INT NOT NULL,
+                vocabularyID INT,
+                question TEXT NOT NULL,
+                FOREIGN KEY (groupID) REFERENCES groupTable(groupID) ON DELETE CASCADE,
+                FOREIGN KEY (vocabularyID) REFERENCES groupVocabularyTable(ID) ON DELETE CASCADE
+            );
+
+        """)
+
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS groupQuestionTable (
+                ID INT AUTO_INCREMENT PRIMARY KEY,
+                groupID INT NOT NULL,
+                vocabularyID INT,
+                question TEXT NOT NULL,
+                FOREIGN KEY (groupID) REFERENCES groupTable(groupID) ON DELETE CASCADE,
+                FOREIGN KEY (vocabularyID) REFERENCES groupVocabularyTable(ID) ON DELETE CASCADE
+            );
+
+        """)
+
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS  groupQuestionQuotationTable (
+                questionID INT,
+                userID INT,
+                bookID INT,
+                quotation TEXT,
+                PRIMARY KEY (questionID, userID),
+                FOREIGN KEY (questionID) REFERENCES groupQuestionTable(ID) ON DELETE CASCADE,
+                FOREIGN KEY (userID) REFERENCES userTable(ID) ON DELETE CASCADE,
+                FOREIGN KEY (bookID) REFERENCES bookTable(ID) ON DELETE CASCADE
+            );
+
+        """)
+        
+        
+        
+
+
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS  questionRecommendBookTable (
+                questionID INT,
+                userID INT,
+                bookID INT,
+                PRIMARY KEY (questionID, userID, bookID),
+                FOREIGN KEY (questionID) REFERENCES groupQuestionTable(ID),
+                FOREIGN KEY (userID) REFERENCES userTable(ID),
+                FOREIGN KEY (bookID) REFERENCES bookTable(ID)
+            );
+
+
+        """)
+
+        self.cur.execute("""
+            CREATE TABLE  IF NOT EXISTS  reviewRecommendBookTable (
+                reviewBookID  INT,
+                userID INT,
+                recommendBookID  INT,
+                PRIMARY KEY (reviewBookID, userID, recommendBookID),
+                FOREIGN KEY (reviewBookID) REFERENCES bookTable(ID),
+                FOREIGN KEY (userID) REFERENCES userTable(ID),
+                FOREIGN KEY (recommendBookID) REFERENCES bookTable(ID)
+            );
+
+
+        """)
+        
+
 
         # 책 데이터가 없다면 CSV 파일에서 데이터 삽입
+        self.cur.execute("SELECT COUNT(*) FROM groupVocabularyTable")
+        result = self.cur.fetchone()
+
+        if result[0] == 0:
+            with open('Nouns_List.csv', mode='r',encoding = "utf-8") as file:
+                csv_reader = csv.reader(file)
+
+                for  row in csv_reader:
+                    if len(row) == 1:  # 데이터가 6개 컬럼과 맞는지 확인
+                        vocab = row[0]
+                        query = """
+                            INSERT INTO groupVocabularyTable (vocabulary)
+                            VALUES (%s)
+                        """
+                        self.cur.execute(query, (vocab,))
+                    else:
+                        print(f"Skipping invalid row: {row}")
+
+            # 변경 사항 커밋
+            self.conn.commit()
+
+
         self.cur.execute("SELECT COUNT(*) FROM bookTable")
         result = self.cur.fetchone()
 
         if result[0] == 0:
-            with open('finalData.csv', mode='r',encoding = "cp949") as file:
+            with open('finalData.csv', mode='r',encoding = "cp949") as file, open('write.csv', mode='r',encoding = "cp949") as desc_file:
                 csv_reader = csv.reader(file)
-
-                for row in csv_reader:
-                    if len(row) == 6:  # 데이터가 6개 컬럼과 맞는지 확인
+                csv_desc_reader = csv.reader(desc_file)
+                
+                for  row in csv_reader:
+                    desc_row = next(csv_desc_reader)
+                    if True:  # 데이터가 6개 컬럼과 맞는지 확인
                         name = row[0][:50]
                         author = row[1][:100]
                         publisher = row[2][:30]
                         year = row[3][:4]
                         image = row[4][:255]
                         isbn = row[5][:13]
+                        
+                        try:
+                            query = """
+                                INSERT INTO bookTable (name, author, publisher, year, image, ISBN)
+                                VALUES (%s, %s, %s, %s, %s, %s)
+                            """
+                            self.cur.execute(query, (name, author, publisher, year, image, isbn))
+                        except Exception as e:
+                            print(f"An error occurred while executing the query: {e}")
 
-                        query = """
-                            INSERT INTO bookTable (name, author, publisher, year, image, ISBN)
-                            VALUES (%s, %s, %s, %s, %s, %s)
-                        """
-                        self.cur.execute(query, (name, author, publisher, year, image, isbn))
                     else:
-                        print(f"Skipping invalid row: {row}")
+                        print(f"Skipping invalid row: {row}, {desc_row}")
 
             # 변경 사항 커밋
             self.conn.commit()
+            with open('write.csv', mode='r',encoding = "cp949") as file:
+                csv_reader = csv.reader(file)
+                
+                for  row in csv_reader:
+                    
+                    
+                    name = row[0][:50]
+                    description = row[2]
+
+
+                        
+                    try:
+                        query_check = "SELECT id FROM bookTable WHERE name = %s"
+                        self.cur.execute(query_check, (name,))
+                        result = self.cur.fetchone()
+                        if result:  # name에 해당하는 book이 존재하면
+                            book_id = result[0]
+                           
+                    
+                    # id를 사용하여 새로운 데이터를 추가합니다.
+                            query_update = """
+                                UPDATE bookTable
+                                SET description = %s
+                                WHERE id = %s
+                            """
+                            # print(description)
+                            # print(book_id)
+                            self.cur.execute(query_update, (description, book_id))
+                            # print(f"update {book_id}")
+                        else:
+                            print(f"Book with name '{name}' not found.")
+                    except Exception as e:
+                        print(f"An error occurred while executing the query: {e}")
+
+                
+                self.conn.commit()
+                query ="""
+DELETE FROM booktable
+WHERE ID IN (
+    23, 926, 1181, 1947, 2275, 2313, 2328, 2873, 2912, 3348, 
+    3500, 3532, 4410, 4413, 4686, 4690, 4987, 5493, 5562, 5771, 
+    5953, 6096, 6242, 6778, 6853, 7003, 7302, 7442, 7675, 7690, 
+    7811, 8068, 8152, 8207, 8224, 8243, 8314, 8454, 8455, 8477, 
+    8598, 8601, 8663, 8819, 8822, 8830, 8842
+);
+"""
+                self.cur.execute(query)
+                self.conn.commit()
+        self.cur.execute("SELECT COUNT(*) FROM bookKeywordTable")
+        result = self.cur.fetchone()
+
+        if result[0] == 0:
+
+            with open('bookKeywordExtract.csv', mode='r',encoding = "utf-8") as file:
+                csv_reader = csv.reader(file)
+                
+                for  row in csv_reader:
+                    
+                    
+                    name = row[0][:50]
+                    keyword = row[1]+";"+row[2]+";"+row[3]+";"+row[4]+";"+row[5]
+
+                    # print(keyword)
+                        
+                    try:
+                        query_check = "SELECT id FROM bookTable WHERE name = %s"
+                        self.cur.execute(query_check, (name,))
+                        result = self.cur.fetchone()
+                        if result:  # name에 해당하는 book이 존재하면
+                            book_id = result[0]
+                            # print(book_id)
+                           
+                    
+                    # id를 사용하여 새로운 데이터를 추가합니다.
+                            query = """
+                                INSERT INTO bookKeywordTable (bookID, keyword)
+                                VALUES (%s, %s)
+                                
+                                """
+                            # print(description)
+                            # print(book_id)
+                            self.cur.execute(query, (book_id,keyword))
+                            # print(f"update {book_id}")
+                        else:
+                            print(f"Book with name '{name}' not found.")
+                    except Exception as e:
+                        print(f"An error occurred while executing the query: {e}")
+
+                
+            self.conn.commit()
+        
+        
+
+        # self.cur.execute("SELECT COUNT(*) FROM bookKeyWordTable")
+        # result = self.cur.fetchone()
+
+        # if result[0] == 0:
+        #     with open('bookKeywordExtract.csv', mode='r',encoding = "utf-8") as file:
+        #         csv_reader = csv.reader(file)
+        #         count =1
+        #         for  row in csv_reader:
+        #             if True:  # 데이터가 6개 컬럼과 맞는지 확인
+        #                 keyword = row[1]+";"+row[2]+";"+row[3]+";"+row[4]+";"+row[5]
+
+        #                 query = """
+        #                     INSERT INTO bookKeywordTable (bookID, keyword)
+        #                     VALUES (%s, %s)
+        #                 """
+        #                 # print(count)
+        #                 self.cur.execute(query, (count,keyword))
+        #                 count += 1
+        #             else:
+        #                 print(f"Skipping invalid row: {row}")
+
+        #     # 변경 사항 커밋
+        #     self.conn.commit()
 
     def execute_query(self, query):
         try:
