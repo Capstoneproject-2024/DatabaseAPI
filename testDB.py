@@ -4,7 +4,7 @@ import os
 from flask import Flask, jsonify, request
 import csv
 
-app = Flask(__name__)
+# app = Flask(__name__)
 
 load_dotenv()
 
@@ -426,20 +426,20 @@ WHERE ID IN (
 # DBManager 인스턴스 생성 및 실행
 dbManager = DBManager()
 
-@app.route('/')
-def main():
-    return 'main'
+# @app.route('/')
+# def main():
+#     return 'main'
 
-@app.route('/execute_query', methods=['GET'])
-def execute_query_route():
-    query = request.args.get('query')  # URL의 query 파라미터를 가져옴
-    if query:
-        result = dbManager.execute_query(query)
-        if(result == "fail"):
-            return jsonify({"result":result}), 400
-        return jsonify({"result": result})  # 결과를 JSON 형식으로 반환
-    else:
-        return jsonify({"error": "쿼리를 입력해주세요."}), 400
+# @app.route('/execute_query', methods=['GET'])
+# def execute_query_route():
+#     query = request.args.get('query')  # URL의 query 파라미터를 가져옴
+#     if query:
+#         result = dbManager.execute_query(query)
+#         if(result == "fail"):
+#             return jsonify({"result":result}), 400
+#         return jsonify({"result": result})  # 결과를 JSON 형식으로 반환
+#     else:
+#         return jsonify({"error": "쿼리를 입력해주세요."}), 400
 
-if __name__ == '__main__':
-    app.run('0.0.0.0', port=5001, debug=True)
+# if __name__ == '__main__':
+#     app.run('0.0.0.0', port=5001, debug=True)
