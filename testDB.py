@@ -320,7 +320,7 @@ class DBManager:
                 
                 self.conn.commit()
                 query ="""
-DELETE FROM booktable
+DELETE FROM bookTable
 WHERE ID IN (
     23, 926, 1181, 1947, 2275, 2313, 2328, 2873, 2912, 3348, 
     3500, 3532, 4410, 4413, 4686, 4690, 4987, 5493, 5562, 5771, 
