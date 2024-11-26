@@ -174,6 +174,7 @@ class DBManager:
                 groupID INT NOT NULL,
                 vocabularyID INT,
                 question TEXT NOT NULL,
+                date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (groupID) REFERENCES groupTable(groupID) ON DELETE CASCADE,
                 FOREIGN KEY (vocabularyID) REFERENCES groupVocabularyTable(ID) ON DELETE CASCADE
             );
@@ -186,6 +187,7 @@ class DBManager:
                 userID INT,
                 bookID INT,
                 quotation TEXT,
+                date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (questionID, userID),
                 FOREIGN KEY (questionID) REFERENCES groupQuestionTable(ID) ON DELETE CASCADE,
                 FOREIGN KEY (userID) REFERENCES userTable(ID) ON DELETE CASCADE,
