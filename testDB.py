@@ -229,10 +229,12 @@ class DBManager:
             CREATE TABLE  IF NOT EXISTS  reviewRecommendBookTable (
                 reviewBookID  INT,
                 userID INT,
+                reviewID INT,
                 recommendBookID  INT,
-                PRIMARY KEY (reviewBookID, userID, recommendBookID),
+                PRIMARY KEY (reviewBookID, userID, recommendBookID, reviewID),
                 FOREIGN KEY (reviewBookID) REFERENCES bookTable(ID),
                 FOREIGN KEY (userID) REFERENCES userTable(ID),
+                FOREIGN KEY (reviewID) REFERENCES reviewTable(ID),
                 FOREIGN KEY (recommendBookID) REFERENCES bookTable(ID)
             );
 
