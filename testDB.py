@@ -243,27 +243,7 @@ class DBManager:
         
 
 
-        # 책 데이터가 없다면 CSV 파일에서 데이터 삽입
-        self.cur.execute("SELECT COUNT(*) FROM groupVocabularyTable")
-        result = self.cur.fetchone()
-
-        if result[0] == 0:
-            with open('Nouns_List.csv', mode='r',encoding = "utf-8") as file:
-                csv_reader = csv.reader(file)
-
-                for  row in csv_reader:
-                    if len(row) == 1:  # 데이터가 6개 컬럼과 맞는지 확인
-                        vocab = row[0]
-                        query = """
-                            INSERT INTO groupVocabularyTable (vocabulary)
-                            VALUES (%s)
-                        """
-                        self.cur.execute(query, (vocab,))
-                    else:
-                        print(f"Skipping invalid row: {row}")
-
-            # 변경 사항 커밋
-            self.conn.commit()
+        
 
         # 책 데이터가 없다면 CSV 파일에서 데이터 삽입
         self.cur.execute("SELECT COUNT(*) FROM bookVocabularyTable")
@@ -287,6 +267,8 @@ class DBManager:
 
             # 변경 사항 커밋
             self.conn.commit()
+
+
 
 
         self.cur.execute("SELECT COUNT(*) FROM bookTable")
@@ -413,7 +395,27 @@ WHERE ID IN (
             self.conn.commit()
         
         
+# 책 데이터가 없다면 CSV 파일에서 데이터 삽입
+        self.cur.execute("SELECT COUNT(*) FROM groupVocabularyTable")
+        result = self.cur.fetchone()
 
+        if result[0] == 0:
+            with open('Nouns_List.csv', mode='r',encoding = "utf-8") as file:
+                csv_reader = csv.reader(file)
+
+                for  row in csv_reader:
+                    if len(row) == 1:  # 데이터가 6개 컬럼과 맞는지 확인
+                        vocab = row[0]
+                        query = """
+                            INSERT INTO groupVocabularyTable (vocabulary)
+                            VALUES (%s)
+                        """
+                        self.cur.execute(query, (vocab,))
+                    else:
+                        print(f"Skipping invalid row: {row}")
+
+            # 변경 사항 커밋
+            self.conn.commit()
         # self.cur.execute("SELECT COUNT(*) FROM bookKeyWordTable")
         # result = self.cur.fetchone()
 
